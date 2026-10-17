@@ -11,29 +11,70 @@ h1{font-size:22px;margin:4px 0 10px}.tabs{display:flex;gap:6px;overflow-x:auto;m
 input{flex:1;min-width:0;padding:12px;font-size:18px;border-radius:10px;border:1px solid #333;background:#000;color:#fff}
 .btn{width:100%;padding:14px;font-size:17px;border:0;border-radius:12px;background:#3b82f6;color:#fff;margin-top:8px}
 .sec{background:#333}.hist{font-size:14px;color:#aaa;margin-top:8px;display:none}.note{color:#fbbf24;font-size:14px}
+.hdr{display:flex;justify-content:space-between;align-items:center;gap:8px}.ebtn{flex:0 0 auto;padding:12px 16px;border:0;border-radius:10px;background:#333;color:#fff;font-size:16px}
+.ebtn.on{background:#4ade80;color:#000}label.f{display:block;font-size:13px;color:#999;margin:8px 0 2px}select{flex:1;min-width:0;padding:12px;font-size:18px;border-radius:10px;border:1px solid #333;background:#000;color:#fff}
+.tools{display:flex;gap:8px;margin-top:10px}.tools button{flex:1;padding:14px 0;font-size:18px;border:0;border-radius:12px;background:#333;color:#fff}.tools .dl{background:#7f1d1d}.btn.add{background:#16a34a}.btn.warn{background:#7f1d1d}
 </style></head><body><h1>💪 Workout</h1><div class="tabs" id="tabs"></div><div id="main"></div>
-<div class="card"><button class="btn sec" onclick="exp()">Export backup (JSON)</button><button class="btn sec" onclick="document.getElementById('f').click()">Import backup</button><input type="file" id="f" accept=".json" style="display:none" onchange="imp(this)"></div>
+<div class="card"><button class="btn sec" onclick="exp()">Export backup (JSON)</button><button class="btn sec" onclick="document.getElementById('f').click()">Import backup</button><input type="file" id="f" accept=".json" style="display:none" onchange="imp(this)"><button class="btn warn" onclick="resetPlan()">Reset to default plan</button></div>
 <script>
-const K='wlog_v1';let plan,day=localStorage.getItem('wday')||'d1',log=JSON.parse(localStorage.getItem(K)||'{}');
+const K='wlog_v1',PK='wplan_v1';let plan,defPlan,edit=false,day=localStorage.getItem('wday')||'d1',log=JSON.parse(localStorage.getItem(K)||'{}');
 const save=()=>localStorage.setItem(K,JSON.stringify(log));
+const savePlan=()=>localStorage.setItem(PK,JSON.stringify(plan));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const curDay=()=>plan.days.find(x=>x.id==day)||plan.days[0];
+const allEx=()=>plan.days.flatMap(d=>d.exercises||[]);
+function findEx(id){for(const d of plan.days){const i=(d.exercises||[]).findIndex(x=>x.id==id);if(i>=0)return{d,i,e:d.exercises[i]}}return null}
+function newId(){const used=new Set(allEx().map(e=>e.id).concat(Object.keys(log)));let id;do{id='x'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}while(used.has(id));return id}
 function sug(e){const h=log[e.id];if(!h||!h.length)return{w:e.start,t:e.start?'Starting estimate':'Bodyweight'};
 const l=h[h.length-1],w=Math.max(...l.sets.map(s=>s.w||0));const top=l.sets.length>=e.sets&&l.sets.every(s=>s.r>=e.reps[1]);
 if(top&&w>0){const inc=e.type==='lower'?10:5;return{w:w+inc,t:`Hit top of range last time → +${inc} lb`}}return{w,t:'Repeat weight, aim for more reps'}}
-function render(){document.getElementById('tabs').innerHTML=plan.days.map(d=>`<button class="${d.id==day?'on':''}" onclick="day='${d.id}';localStorage.setItem('wday',day);render()">${d.name.split(' · ')[0]}</button>`).join('');
-const d=plan.days.find(x=>x.id==day)||plan.days[0];let h=`<div class="card"><b>${d.name}</b><div class="note">${plan.notes}</div></div>`;
-if(d.rest)h+=`<div class="card">${d.note}</div>`;
-(d.exercises||[]).forEach(e=>{const s=sug(e);h+=`<div class="card ex"><h3>${e.name}</h3><div class="meta">${e.sets} × ${e.reps[0]}–${e.reps[1]} · rest ${e.rest}${e.note?' · '+e.note:''}</div>
-<div class="sug">Suggested: ${s.w?s.w+' lb':'Bodyweight'} <span class="meta">(estimate · ${s.t})</span></div>`;
+function setDay(id){day=id;localStorage.setItem('wday',day);render()}
+function toggleEdit(){edit=!edit;render();window.scrollTo(0,0)}
+function render(){document.getElementById('tabs').innerHTML=plan.days.map(d=>`<button class="${d.id==day?'on':''}" onclick="setDay('${d.id}')">${esc(d.name.split(' · ')[0].slice(0,18))}</button>`).join('');
+const d=curDay();let h=`<div class="card"><div class="hdr"><b>${esc(d.name)}</b><button class="ebtn${edit?' on':''}" id="editBtn" onclick="toggleEdit()">${edit?'✓ Done':'✎ Edit'}</button></div><div class="note">${esc(plan.notes)}</div></div>`;
+if(edit){h+=`<div class="card"><label class="f">Day name</label><div class="row"><input id="dayName" value="${esc(d.name)}" onchange="setDayName(this.value)"></div>`+(d.rest||d.note!=null?`<label class="f">Day note</label><div class="row"><input id="dayNote" value="${esc(d.note)}" onchange="setDayNote(this.value)"></div>`:'')+`</div>`;
+const ex=d.exercises||[];ex.forEach((e,i)=>{const f=(k,lab,v,im)=>`<div><label class="f">${lab}</label><div class="row"><input ${im?`inputmode="${im}"`:''} id="${e.id}_${k}" value="${esc(v)}" onchange="setF('${e.id}','${k}',this.value)"></div></div>`;
+h+=`<div class="card ex" data-id="${e.id}">${f('name','Exercise name',e.name)}
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">${f('sets','Sets',e.sets,'numeric')}${f('rmin','Reps min',e.reps[0],'numeric')}${f('rmax','Reps max',e.reps[1],'numeric')}</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${f('start','Start weight (lb, 0 = BW)',e.start,'decimal')}${f('rest','Rest',e.rest)}</div>
+<label class="f">Type (progression step)</label><div class="row"><select id="${e.id}_type" onchange="setF('${e.id}','type',this.value)">${[['upper','Upper (+5 lb)'],['lower','Lower (+10 lb)'],['db','Dumbbell (+5 lb)']].map(([v,l])=>`<option value="${v}"${e.type==v?' selected':''}>${l}</option>`).join('')}</select></div>
+${f('note','Note',e.note||'')}
+<div class="tools"><button aria-label="Move up" onclick="mv('${e.id}',-1)" ${i==0?'disabled style="opacity:.35"':''}>▲</button><button aria-label="Move down" onclick="mv('${e.id}',1)" ${i==ex.length-1?'disabled style="opacity:.35"':''}>▼</button><button class="dl" aria-label="Delete" onclick="rmEx('${e.id}')">🗑 Delete</button></div></div>`});
+h+=`<button class="btn add" id="addBtn" onclick="addEx()">＋ Add exercise</button><button class="btn" onclick="toggleEdit()">✓ Done editing</button>`;
+document.getElementById('main').innerHTML=h;return}
+if(d.rest&&d.note)h+=`<div class="card">${esc(d.note)}</div>`;
+(d.exercises||[]).forEach(e=>{const s=sug(e);h+=`<div class="card ex"><h3>${esc(e.name)}</h3><div class="meta">${e.sets} × ${e.reps[0]}–${e.reps[1]} · rest ${esc(e.rest)}${e.note?' · '+esc(e.note):''}</div>
+<div class="sug">Suggested: ${s.w?s.w+' lb':'Bodyweight'} <span class="meta">(estimate · ${esc(s.t)})</span></div>`;
 for(let i=0;i<e.sets;i++)h+=`<div class="row"><span>Set ${i+1}</span><input inputmode="decimal" placeholder="${s.w?s.w+' lb':'0 = BW'}" id="${e.id}w${i}"><input inputmode="numeric" placeholder="reps" id="${e.id}r${i}"></div>`;
-const hs=(log[e.id]||[]).slice().reverse().map((x,j)=>`<div>${x.date}: ${x.sets.map(z=>z.w+'×'+z.r).join(', ')} <a href="#" style="color:#f87171" onclick="del('${e.id}',${(log[e.id].length-1-j)});return false">✕</a></div>`).join('')||'No history yet';
+const hs=(log[e.id]||[]).slice().reverse().map((x,j)=>`<div>${esc(x.date)}: ${x.sets.map(z=>z.w+'×'+z.r).join(', ')} <a href="#" style="color:#f87171" onclick="del('${e.id}',${(log[e.id].length-1-j)});return false">✕</a></div>`).join('')||'No history yet';
 h+=`<button class="btn" onclick="sv('${e.id}')">Save sets</button><button class="btn sec" onclick="const t=this.nextElementSibling;t.style.display=t.style.display=='block'?'none':'block'">History</button><div class="hist">${hs}</div></div>`});
 document.getElementById('main').innerHTML=h}
-function sv(id){const e=plan.days.flatMap(d=>d.exercises||[]).find(x=>x.id==id),sets=[];
+function setDayName(v){v=v.trim();const d=curDay();if(v){d.name=v;savePlan()}const el=document.getElementById('dayName');if(el)el.value=d.name;const b=document.querySelector('.hdr b');if(b)b.textContent=d.name;const t=document.querySelector('#tabs button.on');if(t)t.textContent=d.name.split(' · ')[0].slice(0,18)}
+function setDayNote(v){curDay().note=v;savePlan()}
+function setF(id,k,v){const x=findEx(id);if(!x)return;const e=x.e,put=(kk,val)=>{const el=document.getElementById(id+'_'+kk);if(el)el.value=val};v=String(v).trim();
+if(k=='name'){if(v)e.name=v;put('name',e.name)}
+else if(k=='sets'){const n=parseInt(v);e.sets=isNaN(n)?e.sets:Math.min(10,Math.max(1,n));put('sets',e.sets)}
+else if(k=='rmin'||k=='rmax'){const n=parseInt(v);if(!isNaN(n)&&n>0){if(k=='rmin'){e.reps[0]=n;if(e.reps[1]<n)e.reps[1]=n}else{e.reps[1]=n;if(e.reps[0]>n)e.reps[0]=n}}put('rmin',e.reps[0]);put('rmax',e.reps[1])}
+else if(k=='start'){const n=parseFloat(v);e.start=isNaN(n)||n<0?0:n;put('start',e.start)}
+else if(k=='type'){if(['upper','lower','db'].includes(v))e.type=v}
+else if(k=='rest'){e.rest=v||'1 min';put('rest',e.rest)}
+else if(k=='note'){if(v)e.note=v;else delete e.note}
+savePlan()}
+function mv(id,dir){const x=findEx(id);if(!x)return;const a=x.d.exercises,j=x.i+dir;if(j<0||j>=a.length)return;[a[x.i],a[j]]=[a[j],a[x.i]];savePlan();render()}
+function rmEx(id){const x=findEx(id);if(!x)return;if(!confirm(`Delete "${x.e.name}" from this day? (Its logged history is kept.)`))return;x.d.exercises.splice(x.i,1);savePlan();render()}
+function addEx(){const d=curDay();d.exercises=d.exercises||[];const e={id:newId(),name:'New exercise',sets:3,reps:[8,12],type:'upper',start:0,rest:'1.5 min'};d.exercises.push(e);savePlan();render();const n=document.getElementById(e.id+'_name');if(n){n.scrollIntoView&&n.scrollIntoView({block:'center'});n.focus();n.select&&n.select()}}
+function resetPlan(){if(!confirm('Reset to the default plan? Your exercise edits will be lost (logged weights are kept).'))return;localStorage.removeItem(PK);const p=defPlan||JSON.parse(localStorage.getItem('plan')||'null');if(p){plan=clone(p);edit=false;render()}else location.reload()}
+function sv(id){const x=findEx(id);if(!x)return;const e=x.e,sets=[];
 for(let i=0;i<e.sets;i++){const w=parseFloat(document.getElementById(id+'w'+i).value),r=parseInt(document.getElementById(id+'r'+i).value);if(!isNaN(r))sets.push({w:isNaN(w)?0:w,r})}
 if(!sets.length)return alert('Enter reps for at least one set');(log[id]=log[id]||[]).push({date:new Date().toLocaleDateString(),sets});save();render()}
 function del(id,i){if(confirm('Delete this entry?')){log[id].splice(i,1);save();render()}}
-function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(log,null,1)],{type:'application/json'}));a.download='workout-backup.json';a.click()}
-function imp(i){const r=new FileReader();r.onload=()=>{try{log=JSON.parse(r.result);save();render();alert('Imported')}catch(e){alert('Bad file')}};r.readAsText(i.files[0])}
-fetch('plan.json',{cache:'no-cache'}).then(r=>r.json()).then(p=>{plan=p;localStorage.setItem('plan',JSON.stringify(p));render()}).catch(()=>{plan=JSON.parse(localStorage.getItem('plan')||'null');if(plan)render();else document.getElementById('main').innerHTML='<div class="card">Could not load plan. Connect to the internet and reload.</div>'});
+function exp(){const b={app:'workout',v:2,log,plan:localStorage.getItem(PK)?plan:null};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(b,null,1)],{type:'application/json'}));a.download='workout-backup.json';a.click()}
+function validPlan(p){return p&&Array.isArray(p.days)&&p.days.every(d=>d&&d.id&&d.name&&Array.isArray(d.exercises||[]))}
+function imp(i){const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);
+if(o&&o.app=='workout'&&o.log){log=o.log;if(validPlan(o.plan)){plan=o.plan;savePlan()}}else log=o;
+save();edit=false;render();alert('Imported')}catch(e){alert('Bad file')}};r.readAsText(i.files[0])}
+function loadPlan(p){defPlan=p;let lp=null;try{lp=JSON.parse(localStorage.getItem(PK)||'null')}catch(e){}plan=validPlan(lp)?lp:(p?clone(p):null)}
+fetch('plan.json',{cache:'no-cache'}).then(r=>r.json()).then(p=>{localStorage.setItem('plan',JSON.stringify(p));loadPlan(p);render()}).catch(()=>{loadPlan(JSON.parse(localStorage.getItem('plan')||'null'));if(plan)render();else document.getElementById('main').innerHTML='<div class="card">Could not load plan. Connect to the internet and reload.</div>'});
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
 </script></body></html>

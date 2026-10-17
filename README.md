@@ -5,8 +5,11 @@ Static files: index.html, plan.json, sw.js, manifest.json, icon.svg. No build st
 Edit plan.json: days[].exercises[] fields are id (keep the same, since logs are keyed by it), name, sets, reps [min,max], type (upper|lower|db; sets the progression step: +5 upper/db, +10 lower), start (starting estimate in lb), rest, note.
 Then redeploy, i.e. copy all files to the static host (for example, upload to the GitHub repo alexroyandrew1-crypto/workout; served at https://alexroyandrew1-crypto.github.io/workout/). The app fetches plan.json no-cache, so phones pick up changes on the next open. Bump the cache name C in sw.js if index.html changes.
 
+## In-app editing
+Tap "✎ Edit" on any day to rename the day and edit each exercise (name, sets, rep min/max, start weight, type, rest, note), move it up/down, delete it, or add a new one. Edits save instantly to localStorage key wplan_v1 and override plan.json on that phone. New exercises get unique ids (x...); renaming keeps the id, so history stays attached. Deleting an exercise keeps its logs. "Reset to default plan" (bottom) clears wplan_v1 and goes back to plan.json. Note: while a local plan exists, changes to plan.json don't show on that phone until it resets.
+
 ## Logs
-Stored in the phone's localStorage under key wlog_v1, and are never uploaded. Export/Import buttons at the bottom save or restore a JSON backup.
+Stored in the phone's localStorage under key wlog_v1, and are never uploaded. Export/Import buttons at the bottom save or restore a JSON backup ({app,v:2,log,plan}; plan is null if unedited). Old log-only backups still import.
 
 ## Local test
 cd /workspace/workout-app && python3 -m http.server 8080
