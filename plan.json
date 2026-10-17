@@ -1,0 +1,30 @@
+{"version":1,"notes":"Suggested weights are estimates. 2-3 hard sets, stop 1-2 reps short of failure. Rest 1.5-2 min on big lifts, ~1 min on others. Returning from a leg injury: keep lower body light and follow your physio's advice.",
+"days":[
+{"id":"d1","name":"Day 1 · Upper Strength","exercises":[
+{"id":"bench","name":"Bench press","sets":3,"reps":[5,8],"type":"upper","start":155,"rest":"2 min"},
+{"id":"csrow","name":"Chest-supported row","sets":3,"reps":[8,10],"type":"upper","start":110,"rest":"1.5 min"},
+{"id":"ohp","name":"Overhead press","sets":2,"reps":[6,10],"type":"upper","start":95,"rest":"1.5 min"},
+{"id":"pulldown","name":"Lat pulldown","sets":2,"reps":[10,12],"type":"upper","start":130,"rest":"1 min"},
+{"id":"curl","name":"Curl (superset A)","sets":2,"reps":[10,15],"type":"db","start":30,"rest":"1 min","note":"Per dumbbell"},
+{"id":"pushdown","name":"Triceps pushdown (superset A)","sets":2,"reps":[10,15],"type":"upper","start":50,"rest":"1 min"}]},
+{"id":"d2","name":"Day 2 · Lower Strength","exercises":[
+{"id":"squat","name":"Squat or leg press","sets":3,"reps":[6,8],"type":"lower","start":135,"rest":"2 min","note":"Squat start. Leg press: ~180. Go light, follow physio."},
+{"id":"rdl","name":"Romanian deadlift","sets":3,"reps":[8,10],"type":"lower","start":135,"rest":"2 min"},
+{"id":"legcurl","name":"Leg curl","sets":2,"reps":[10,12],"type":"lower","start":70,"rest":"1 min"},
+{"id":"scalf","name":"Standing calf raise","sets":3,"reps":[10,15],"type":"lower","start":135,"rest":"1 min"},
+{"id":"abs","name":"Hanging leg raise / cable crunch","sets":2,"reps":[10,15],"type":"upper","start":0,"rest":"1 min","note":"Bodyweight, or ~60 on cable crunch"}]},
+{"id":"d3","name":"Day 3 · Rest / Walk","rest":true,"exercises":[],"note":"Rest or 20-30 min walk."},
+{"id":"d4","name":"Day 4 · Upper Hypertrophy","exercises":[
+{"id":"incdb","name":"Incline DB press","sets":3,"reps":[8,12],"type":"db","start":55,"rest":"1.5 min","note":"Per dumbbell"},
+{"id":"pullup","name":"Pull-ups (assisted ok)","sets":3,"reps":[6,10],"type":"upper","start":0,"rest":"1.5 min","note":"0 = bodyweight; log added weight"},
+{"id":"fly","name":"Cable fly","sets":2,"reps":[12,15],"type":"upper","start":25,"rest":"1 min","note":"Per side"},
+{"id":"cablerow","name":"Seated cable row","sets":2,"reps":[10,12],"type":"upper","start":120,"rest":"1 min"},
+{"id":"lateral","name":"Lateral raise","sets":3,"reps":[12,20],"type":"db","start":20,"rest":"1 min","note":"Per dumbbell"},
+{"id":"inccurl","name":"Incline curl (superset B)","sets":2,"reps":[10,15],"type":"db","start":25,"rest":"1 min","note":"Per dumbbell"},
+{"id":"ohtri","name":"Overhead triceps extension (superset B)","sets":2,"reps":[10,15],"type":"upper","start":45,"rest":"1 min"}]},
+{"id":"d5","name":"Day 5 · Lower Hypertrophy","exercises":[
+{"id":"bss","name":"Bulgarian split squat or hack squat","sets":3,"reps":[8,12],"type":"db","start":25,"rest":"1.5 min","note":"Per dumbbell (BSS). Hack squat: ~90 plates. Go light."},
+{"id":"thrust","name":"Hip thrust","sets":3,"reps":[8,12],"type":"lower","start":135,"rest":"1.5 min"},
+{"id":"legext","name":"Leg extension","sets":2,"reps":[12,15],"type":"lower","start":70,"rest":"1 min"},
+{"id":"sleg","name":"Seated leg curl","sets":2,"reps":[12,15],"type":"lower","start":70,"rest":"1 min"},
+{"id":"seatcalf","name":"Seated calf raise","sets":3,"reps":[12,20],"type":"lower","start":70,"rest":"1 min"}]}]}

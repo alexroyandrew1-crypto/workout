@@ -1,0 +1,39 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Workout</title><meta name="theme-color" content="#111"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111;color:#eee;font:17px system-ui,sans-serif;padding:12px 12px 80px}
+h1{font-size:22px;margin:4px 0 10px}.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px}
+.tabs button{flex:0 0 auto;padding:12px 14px;border-radius:10px;border:0;background:#222;color:#ccc;font-size:16px}
+.tabs button.on{background:#3b82f6;color:#fff}.card{background:#1c1c1e;border-radius:14px;padding:14px;margin-bottom:12px}
+.ex h3{margin:0 0 4px;font-size:18px}.meta{color:#999;font-size:14px}.sug{color:#4ade80;font-size:15px;margin:6px 0}
+.row{display:flex;gap:8px;align-items:center;margin:6px 0}.row span{width:44px;color:#999}
+input{flex:1;min-width:0;padding:12px;font-size:18px;border-radius:10px;border:1px solid #333;background:#000;color:#fff}
+.btn{width:100%;padding:14px;font-size:17px;border:0;border-radius:12px;background:#3b82f6;color:#fff;margin-top:8px}
+.sec{background:#333}.hist{font-size:14px;color:#aaa;margin-top:8px;display:none}.note{color:#fbbf24;font-size:14px}
+</style></head><body><h1>💪 Workout</h1><div class="tabs" id="tabs"></div><div id="main"></div>
+<div class="card"><button class="btn sec" onclick="exp()">Export backup (JSON)</button><button class="btn sec" onclick="document.getElementById('f').click()">Import backup</button><input type="file" id="f" accept=".json" style="display:none" onchange="imp(this)"></div>
+<script>
+const K='wlog_v1';let plan,day=localStorage.getItem('wday')||'d1',log=JSON.parse(localStorage.getItem(K)||'{}');
+const save=()=>localStorage.setItem(K,JSON.stringify(log));
+function sug(e){const h=log[e.id];if(!h||!h.length)return{w:e.start,t:e.start?'Starting estimate':'Bodyweight'};
+const l=h[h.length-1],w=Math.max(...l.sets.map(s=>s.w||0));const top=l.sets.length>=e.sets&&l.sets.every(s=>s.r>=e.reps[1]);
+if(top&&w>0){const inc=e.type==='lower'?10:5;return{w:w+inc,t:`Hit top of range last time → +${inc} lb`}}return{w,t:'Repeat weight, aim for more reps'}}
+function render(){document.getElementById('tabs').innerHTML=plan.days.map(d=>`<button class="${d.id==day?'on':''}" onclick="day='${d.id}';localStorage.setItem('wday',day);render()">${d.name.split(' · ')[0]}</button>`).join('');
+const d=plan.days.find(x=>x.id==day)||plan.days[0];let h=`<div class="card"><b>${d.name}</b><div class="note">${plan.notes}</div></div>`;
+if(d.rest)h+=`<div class="card">${d.note}</div>`;
+(d.exercises||[]).forEach(e=>{const s=sug(e);h+=`<div class="card ex"><h3>${e.name}</h3><div class="meta">${e.sets} × ${e.reps[0]}–${e.reps[1]} · rest ${e.rest}${e.note?' · '+e.note:''}</div>
+<div class="sug">Suggested: ${s.w?s.w+' lb':'Bodyweight'} <span class="meta">(estimate · ${s.t})</span></div>`;
+for(let i=0;i<e.sets;i++)h+=`<div class="row"><span>Set ${i+1}</span><input inputmode="decimal" placeholder="${s.w?s.w+' lb':'0 = BW'}" id="${e.id}w${i}"><input inputmode="numeric" placeholder="reps" id="${e.id}r${i}"></div>`;
+const hs=(log[e.id]||[]).slice().reverse().map((x,j)=>`<div>${x.date}: ${x.sets.map(z=>z.w+'×'+z.r).join(', ')} <a href="#" style="color:#f87171" onclick="del('${e.id}',${(log[e.id].length-1-j)});return false">✕</a></div>`).join('')||'No history yet';
+h+=`<button class="btn" onclick="sv('${e.id}')">Save sets</button><button class="btn sec" onclick="const t=this.nextElementSibling;t.style.display=t.style.display=='block'?'none':'block'">History</button><div class="hist">${hs}</div></div>`});
+document.getElementById('main').innerHTML=h}
+function sv(id){const e=plan.days.flatMap(d=>d.exercises||[]).find(x=>x.id==id),sets=[];
+for(let i=0;i<e.sets;i++){const w=parseFloat(document.getElementById(id+'w'+i).value),r=parseInt(document.getElementById(id+'r'+i).value);if(!isNaN(r))sets.push({w:isNaN(w)?0:w,r})}
+if(!sets.length)return alert('Enter reps for at least one set');(log[id]=log[id]||[]).push({date:new Date().toLocaleDateString(),sets});save();render()}
+function del(id,i){if(confirm('Delete this entry?')){log[id].splice(i,1);save();render()}}
+function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(log,null,1)],{type:'application/json'}));a.download='workout-backup.json';a.click()}
+function imp(i){const r=new FileReader();r.onload=()=>{try{log=JSON.parse(r.result);save();render();alert('Imported')}catch(e){alert('Bad file')}};r.readAsText(i.files[0])}
+fetch('plan.json',{cache:'no-cache'}).then(r=>r.json()).then(p=>{plan=p;localStorage.setItem('plan',JSON.stringify(p));render()}).catch(()=>{plan=JSON.parse(localStorage.getItem('plan')||'null');if(plan)render();else document.getElementById('main').innerHTML='<div class="card">Could not load plan. Connect to the internet and reload.</div>'});
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
+</script></body></html>
